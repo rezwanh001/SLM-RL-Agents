@@ -3,6 +3,7 @@
 # =============================================================================
 
 README_Old.md
+paper/reviewer.md
 
 scripts/generate_figures.py
 scripts/aggregate_results.py
