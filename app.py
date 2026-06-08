@@ -1,15 +1,19 @@
 #-*- coding: utf-8 -*-
-"""
-@author: Md Rezwanul Haque
-"""
-
+# পূর্বে file-এর top-এ author block + main docstring পরপর দুইটা triple-quoted
+# string ছিল, যেটার পরে `from __future__ import annotations` Python 3.10+ এ
+# SyntaxError দিচ্ছিলো (multiple docstrings + __future__ allowed না)। তাই
+# author tag-কে সাধারণ comment-এ নামিয়ে এনে নিচে single module docstring
+# রাখা হলো।
+# @author: Md Rezwanul Haque
 """
 SLM-RL-Agents — Interactive Verification App (paper appendix)
 
 This Gradio app accompanies the paper:
 
-    "Efficiently Enhancing SLM Agents: A Reinforcement Learning Approach
-     to Performance Improvement"
+    "Towards Robust Reinforcement Learning for Small-Scale
+     Language Model Agents" (IEEE SMC 2026)
+# পূর্বে: paper title-এ ছিল "Efficiently Enhancing SLM Agents …" — SMC
+# 2026 final version-এ rename হয়ে এই form-এ এসেছে।
 
 Its purpose is to let reviewers (and any third party) independently verify
 that the numbers reported in the paper and in the HuggingFace model/dataset
@@ -63,7 +67,9 @@ OUTPUTS = ROOT / "outputs"
 RESULTS_JSON = ROOT / "results" / "all_results.json"
 
 HF_MODEL_REPO = "mr3haque/SLM-RL-Agents"
-HF_DATA_REPO = "mr3haque/SLM-RL-Agentss-Data"
+# পূর্বে: HF_DATA_REPO = "mr3haque/SLM-RL-Agentss-Data"  ← 'Agentss' typo,
+# real repo হলো mr3haque/SLM-RL-Agents-Data (single 's')।
+HF_DATA_REPO = "mr3haque/SLM-RL-Agents-Data"
 GITHUB_URL = "https://github.com/rezwanh001/slm-rl-agents"
 
 MODELS = ["pythia-70m", "pythia-160m", "pythia-410m", "smollm2-135m", "smollm2-360m"]
@@ -102,33 +108,180 @@ def _model_path(model_key: str, dataset: str, stage: str, use_hf: bool) -> str:
     if use_hf:
         # single consolidated repo uses subfolders; transformers supports
         # `subfolder=` at load time. We return a tuple encoded as a string.
-        return f"hf::{HF_MODEL_REPO}::{model_key}/{dataset}/{stage}"
+        # পূর্বে: subfolder ছিল f"{model_key}/{dataset}/{stage}" — কিন্তু HF repo
+        # actually layout হলো sft/<model>/<dataset>/ এবং ppo/<model>/<dataset>/
+        # (stage prefix, model suffix নয়)। এই কারণে --use_hf mode-এ HTTP 404
+        # দিচ্ছিলো।
+        return f"hf::{HF_MODEL_REPO}::{stage}/{model_key}/{dataset}"
     local = OUTPUTS / model_key / dataset / stage / "final"
     return str(local)
 
 
+# পূর্বে: _load_causal_lm সরাসরি AutoModelForCausalLM.from_pretrained(spec, ...)
+# call করতো — কিন্তু sft/<m>/<d>/ checkpoint গুলো full model নয়, LoRA
+# adapter (adapter_config.json + adapter_model.safetensors only, কোনো
+# real model config.json/model weight নেই)। ফলে SFT generate করতে গেলে UI-তে
+# "[SFT load/generate failed: ... does not appear to have a file named
+# config.json]" error আসতো।
+#
+# Local PPO `final/` দিরেক্টরি আবার আরো জটিল: এতে adapter_config.json
+# (stale absolute base_model_name_or_path পয়েন্ট করছে slm-rl-agent —
+# noteworthy: NO 's' — old project dir-এ), adapter_model.safetensors,
+# এবং একটা PPOConfig dump named config.json (architectures field নেই) —
+# সব একসাথে। প্রকৃত merged base model আছে `../ppo/_merged_sft/`-এ
+# (model.safetensors + real model config.json সহ)। তাই PPO load করতে হলে
+# (a) base = sibling `_merged_sft/`, (b) adapter = `final/` overlay, পরে merge।
+#
+# Fix: তিনটা code path —
+#   (i)  HF subfolder + config.json present     → full causal LM (PPO on hub)
+#   (ii) HF subfolder + adapter_config only     → base + LoRA + merge (SFT on hub)
+#   (iii) local dir + real model config.json    → full causal LM
+#   (iv) local dir + adapter_config.json        → base (path-rewritten if stale) + LoRA + merge
 def _load_causal_lm(spec: str):
     if spec in _model_cache:
         return _model_cache[spec]
-    if spec.startswith("hf::"):
+    from peft import PeftModel  # local import keeps startup fast
+
+    is_hf = spec.startswith("hf::")
+    if is_hf:
         _, repo, subfolder = spec.split("::", 2)
-        tok = AutoTokenizer.from_pretrained(repo, subfolder=subfolder, trust_remote_code=True)
-        mdl = AutoModelForCausalLM.from_pretrained(
-            repo, subfolder=subfolder,
-            torch_dtype=torch.float32, device_map="auto", trust_remote_code=True,
-        )
+        adapter_cfg = _maybe_fetch_adapter_config_hf(repo, subfolder)
+        if adapter_cfg is not None:
+            base_name = adapter_cfg["base_model_name_or_path"]
+            base = AutoModelForCausalLM.from_pretrained(
+                base_name, torch_dtype=torch.float32, device_map="auto",
+                trust_remote_code=True,
+            )
+            mdl = PeftModel.from_pretrained(base, repo, subfolder=subfolder)
+            try:
+                tok = AutoTokenizer.from_pretrained(
+                    repo, subfolder=subfolder, trust_remote_code=True
+                )
+            except Exception:
+                tok = AutoTokenizer.from_pretrained(base_name, trust_remote_code=True)
+            try:
+                mdl = mdl.merge_and_unload()
+            except Exception as e:
+                print(f"[app.py] merge_and_unload failed ({e}); using PeftModel.")
+        else:
+            tok = AutoTokenizer.from_pretrained(
+                repo, subfolder=subfolder, trust_remote_code=True
+            )
+            mdl = AutoModelForCausalLM.from_pretrained(
+                repo, subfolder=subfolder,
+                torch_dtype=torch.float32, device_map="auto", trust_remote_code=True,
+            )
     else:
-        if not Path(spec).exists():
+        spec_path = Path(spec)
+        if not spec_path.exists():
             raise FileNotFoundError(spec)
-        tok = AutoTokenizer.from_pretrained(spec, trust_remote_code=True)
-        mdl = AutoModelForCausalLM.from_pretrained(
-            spec, torch_dtype=torch.float32, device_map="auto", trust_remote_code=True,
-        )
+        adapter_cfg = _maybe_read_adapter_config_local(spec_path)
+        if adapter_cfg is not None:
+            base_name = _resolve_local_base(adapter_cfg["base_model_name_or_path"], spec_path)
+            base = AutoModelForCausalLM.from_pretrained(
+                base_name, torch_dtype=torch.float32, device_map="auto",
+                trust_remote_code=True,
+            )
+            mdl = PeftModel.from_pretrained(base, spec)
+            try:
+                tok = AutoTokenizer.from_pretrained(spec, trust_remote_code=True)
+            except Exception:
+                tok = AutoTokenizer.from_pretrained(base_name, trust_remote_code=True)
+            try:
+                mdl = mdl.merge_and_unload()
+            except Exception as e:
+                print(f"[app.py] merge_and_unload failed ({e}); using PeftModel.")
+        else:
+            tok = AutoTokenizer.from_pretrained(spec, trust_remote_code=True)
+            mdl = AutoModelForCausalLM.from_pretrained(
+                spec, torch_dtype=torch.float32, device_map="auto", trust_remote_code=True,
+            )
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
     mdl.eval()
     _model_cache[spec] = (mdl, tok)
     return mdl, tok
+
+
+def _config_is_real_model_config(cfg_path: Path) -> bool:
+    """Distinguish a real model config (has `architectures` or `model_type`)
+    from TRL's PPOConfig dump that happens to also be named config.json."""
+    try:
+        with open(cfg_path) as f:
+            d = json.load(f)
+    except Exception:
+        return False
+    return bool(d.get("architectures") or d.get("model_type"))
+
+
+def _maybe_read_adapter_config_local(path: Path) -> dict | None:
+    """Return adapter_config dict if this directory should be loaded as a
+    LoRA adapter (i.e. no *real* model config.json present, but an
+    adapter_config.json is). PPO `final/` directories ship a PPOConfig dump
+    also named config.json — those are NOT real model configs and we must
+    fall through to the adapter path.
+    """
+    if (path / "config.json").exists() and _config_is_real_model_config(path / "config.json"):
+        return None
+    cfg = path / "adapter_config.json"
+    if not cfg.exists():
+        return None
+    with open(cfg) as f:
+        return json.load(f)
+
+
+def _resolve_local_base(base_name: str, spec_path: Path) -> str:
+    """Heal stale absolute paths in adapter_config.json.
+
+    Local PPO checkpoints have `base_model_name_or_path` like
+    `/.../slm-rl-agent/outputs/<m>/<d>/ppo/_merged_sft` — frozen at PPO
+    save time, before the project was renamed slm-rl-agent → slm-rl-agents.
+    The real merged-SFT base lives in this project's sibling
+    `<spec_path>/../_merged_sft`. Prefer the sibling; fall back to the
+    written path; then to a HF hub identifier (HF-style names contain '/'
+    but not a leading '/').
+    """
+    if not base_name.startswith("/"):
+        return base_name  # HF hub id like "EleutherAI/pythia-70m-deduped"
+    if Path(base_name).exists():
+        return base_name
+    sibling = spec_path.parent / "_merged_sft"
+    if sibling.exists():
+        return str(sibling)
+    raise FileNotFoundError(
+        f"Adapter base model not found: tried {base_name} and {sibling}. "
+        f"Re-run PPO or copy the merged-SFT directory into place."
+    )
+
+
+def _maybe_fetch_adapter_config_hf(repo: str, subfolder: str) -> dict | None:
+    """Return adapter_config.json dict if the subfolder is a LoRA adapter
+    AND no merged config.json exists in the same subfolder. PPO subfolders on
+    HF are fully merged and ship a real model config.json — those are loaded
+    as full causal LMs. SFT subfolders ship only adapter files.
+    """
+    from huggingface_hub import hf_hub_download
+    from huggingface_hub.utils import EntryNotFoundError, HfHubHTTPError
+    try:
+        hf_hub_download(repo_id=repo, filename=f"{subfolder}/config.json")
+        return None  # full model present → not an adapter-only subfolder
+    except (EntryNotFoundError, HfHubHTTPError, FileNotFoundError):
+        pass
+    except Exception as e:
+        print(f"[app.py] config.json probe failed for {repo}/{subfolder}: {e}")
+        return None
+
+    try:
+        cfg_path = hf_hub_download(
+            repo_id=repo, filename=f"{subfolder}/adapter_config.json"
+        )
+    except (EntryNotFoundError, HfHubHTTPError, FileNotFoundError):
+        return None
+    except Exception as e:
+        print(f"[app.py] adapter_config probe failed for {repo}/{subfolder}: {e}")
+        return None
+    with open(cfg_path) as f:
+        return json.load(f)
 
 
 def _load_reward(model_key: str, dataset: str, use_hf: bool):
@@ -160,14 +313,21 @@ def _load_reward(model_key: str, dataset: str, use_hf: bool):
 
     try:
         if use_hf:
-            # Pull adapter_config.json from the hub to discover base model
-            from huggingface_hub import hf_hub_download
-            sub = f"{model_key}/{dataset}/reward_model"
-            cfg_path = hf_hub_download(
-                repo_id=HF_MODEL_REPO,
-                filename=f"{sub}/adapter_config.json",
-            )
-            with open(cfg_path) as f:
+            # পূর্বে: HF repo থেকে reward_model adapter pull করার চেষ্টা ছিল
+            # (subfolder = f"{model_key}/{dataset}/reward_model"), কিন্তু আসল
+            # mr3haque/SLM-RL-Agents repo-তে শুধু sft/ + ppo/ + agentic_sft/
+            # publish করা — reward_model upload করা হয়নি (paper-এর scope
+            # এর বাইরে)। তাই --use_hf mode-এ local reward_model fallback
+            # use করি; না থাকলে None return করে UI graceful degradation
+            # দেখাবে।
+            p = OUTPUTS / model_key / dataset / "reward_model" / "final"
+            if not p.exists():
+                print(
+                    f"[app.py] reward_model not on HF and no local copy at "
+                    f"{p} — single-prompt reward score will be N/A in --use_hf mode."
+                )
+                return None
+            with open(p / "adapter_config.json") as f:
                 adapter_cfg = json.load(f)
             base_name = adapter_cfg["base_model_name_or_path"]
 
@@ -178,10 +338,8 @@ def _load_reward(model_key: str, dataset: str, use_hf: bool):
                 device_map="auto",
                 trust_remote_code=True,
             )
-            rm = PeftModel.from_pretrained(base, HF_MODEL_REPO, subfolder=sub)
-            rtok = AutoTokenizer.from_pretrained(
-                HF_MODEL_REPO, subfolder=sub, trust_remote_code=True
-            )
+            rm = PeftModel.from_pretrained(base, str(p))
+            rtok = AutoTokenizer.from_pretrained(str(p), trust_remote_code=True)
         else:
             p = OUTPUTS / model_key / dataset / "reward_model" / "final"
             if not p.exists():
@@ -449,17 +607,18 @@ For every (model, dataset, prompt) the app returns:
 
 ```bash
 git clone {GITHUB_URL}
-cd slm-rl-agent
-pip install -e ".[all]"
+cd slm-rl-agents
+pip install -e .
 
 # re-run one full pipeline end-to-end
 bash scripts/run_all_experiments.sh pythia-70m tinystories
 
 # or, using the already-trained weights shipped on HuggingFace
-huggingface-cli download {HF_MODEL_REPO} --include "pythia-70m/tinystories/**"
+hf download {HF_MODEL_REPO} --include "ppo/pythia-70m/tinystories/**" \\
+    --local-dir ./hf_weights
 python scripts/evaluate.py \\
-    --model_path pythia-70m/tinystories/ppo/final \\
-    --eval_dataset ./data/tinystories/eval.json
+    --model_path ./hf_weights/ppo/pythia-70m/tinystories \\
+    --eval_dataset ./data/tinystories/sft_eval.json
 
 # cross-check every reported number against the raw eval files
 python scripts/verify_results.py
@@ -479,8 +638,8 @@ def build_demo(use_hf: bool):
     with gr.Blocks(title="SLM-RL-Agents — Verification") as demo:
         gr.Markdown(
             "# SLM-RL-Agents — Interactive Verification\n"
-            "Companion app for *“Efficiently Enhancing SLM Agents: "
-            "A Reinforcement Learning Approach to Performance Improvement.”*  \n"
+            "Companion app for *“Towards Robust Reinforcement Learning for "
+            "Small-Scale Language Model Agents.”* (IEEE SMC 2026)  \n"
             f"Weights: [{HF_MODEL_REPO}](https://huggingface.co/{HF_MODEL_REPO}) · "
             f"Data: [{HF_DATA_REPO}](https://huggingface.co/datasets/{HF_DATA_REPO}) · "
             f"Code: [{GITHUB_URL}]({GITHUB_URL})  \n"
