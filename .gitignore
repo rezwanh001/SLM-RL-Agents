@@ -2,6 +2,9 @@
 # SLM-RL-Agents .gitignore
 # =============================================================================
 
+SMC_2026__SLM_Agents_With_RL/
+SMC_2026__SLM_Agents_With_RL.zip
+
 README_Old.md
 paper/reviewer.md
 

@@ -1,9 +1,7 @@
 #-*- coding: utf-8 -*-
 """
 @author: Md Rezwanul Haque
-"""
 
-"""
 Consolidate SLM-RL-Agents artefacts into exactly TWO Hugging Face repos:
 
     mr3haque/SLM-RL-Agents-Data   (dataset)
@@ -479,10 +477,10 @@ def build_model_readme() -> str:
     sota_rows = [
         "| Class | Model | Training regime | TS PPL | TS R | CNN PPL | CNN R | Wiki PPL | Wiki R |",
         "|---|---|---|---:|---:|---:|---:|---:|---:|",
-        f"| 135M | SmolLM2-135M-Instruct | instruct-tune 1.7T tok | {_fmt(smol('smollm2-135m-instruct','tinystories','perplexity'),1)} | {_fmt(smol('smollm2-135m-instruct','tinystories','reward_mean'),2,signed=True)} | {_fmt(smol('smollm2-135m-instruct','cnn_dailymail','perplexity'),1)} | {_fmt(smol('smollm2-135m-instruct','cnn_dailymail','reward_mean'),2,signed=True)} | {_fmt(smol('smollm2-135m-instruct','wikitext','perplexity'),1)} | {_fmt(smol('smollm2-135m-instruct','wikitext','reward_mean'),2,signed=True)} |",
+        f"| 135M | SmolLM2-135M-Instruct | instruct-tune 2T tok | {_fmt(smol('smollm2-135m-instruct','tinystories','perplexity'),1)} | {_fmt(smol('smollm2-135m-instruct','tinystories','reward_mean'),2,signed=True)} | {_fmt(smol('smollm2-135m-instruct','cnn_dailymail','perplexity'),1)} | {_fmt(smol('smollm2-135m-instruct','cnn_dailymail','reward_mean'),2,signed=True)} | {_fmt(smol('smollm2-135m-instruct','wikitext','perplexity'),1)} | {_fmt(smol('smollm2-135m-instruct','wikitext','reward_mean'),2,signed=True)} |",
         f"| 135M | **SmolLM2-135M (ours, SFT)** | LoRA, 5 ep, 10K ex | **{_fmt(ours_field('smollm2-135m','tinystories','sft_perplexity'),1)}** | {_fmt(ours_field('smollm2-135m','tinystories','sft_reward_mean'),2,signed=True)} | **{_fmt(ours_field('smollm2-135m','cnn_dailymail','sft_perplexity'),1)}** | {_fmt(ours_field('smollm2-135m','cnn_dailymail','sft_reward_mean'),2,signed=True)} | **{_fmt(ours_field('smollm2-135m','wikitext','sft_perplexity'),1)}** | {_fmt(ours_field('smollm2-135m','wikitext','sft_reward_mean'),2,signed=True)} |",
         f"| 135M | **SmolLM2-135M (ours, PPO)** | + 250-step PPO RLHF | {_fmt(ours_field('smollm2-135m','tinystories','ppo_perplexity'),1)} | {_fmt(ours_field('smollm2-135m','tinystories','ppo_reward_mean'),2,signed=True)} | {_fmt(ours_field('smollm2-135m','cnn_dailymail','ppo_perplexity'),1)} | {_fmt(ours_field('smollm2-135m','cnn_dailymail','ppo_reward_mean'),2,signed=True)} | {_fmt(ours_field('smollm2-135m','wikitext','ppo_perplexity'),1)} | {_fmt(ours_field('smollm2-135m','wikitext','ppo_reward_mean'),2,signed=True)} |",
-        f"| 360M+ | SmolLM2-360M-Instruct | instruct-tune 1.7T tok | {_fmt(smol('smollm2-360m-instruct','tinystories','perplexity'),1)} | {_fmt(smol('smollm2-360m-instruct','tinystories','reward_mean'),2,signed=True)} | {_fmt(smol('smollm2-360m-instruct','cnn_dailymail','perplexity'),1)} | **{_fmt(smol('smollm2-360m-instruct','cnn_dailymail','reward_mean'),2,signed=True)}** | {_fmt(smol('smollm2-360m-instruct','wikitext','perplexity'),1)} | {_fmt(smol('smollm2-360m-instruct','wikitext','reward_mean'),2,signed=True)} |",
+        f"| 360M+ | SmolLM2-360M-Instruct | instruct-tune 4T tok | {_fmt(smol('smollm2-360m-instruct','tinystories','perplexity'),1)} | {_fmt(smol('smollm2-360m-instruct','tinystories','reward_mean'),2,signed=True)} | {_fmt(smol('smollm2-360m-instruct','cnn_dailymail','perplexity'),1)} | **{_fmt(smol('smollm2-360m-instruct','cnn_dailymail','reward_mean'),2,signed=True)}** | {_fmt(smol('smollm2-360m-instruct','wikitext','perplexity'),1)} | {_fmt(smol('smollm2-360m-instruct','wikitext','reward_mean'),2,signed=True)} |",
         f"| 360M+ | Qwen2.5-0.5B-Instruct | instruct-tune 18T tok | {_fmt(smol('qwen25-05b-instruct','tinystories','perplexity'),1)} | {_fmt(smol('qwen25-05b-instruct','tinystories','reward_mean'),2,signed=True)} | {_fmt(smol('qwen25-05b-instruct','cnn_dailymail','perplexity'),1)} | {_fmt(smol('qwen25-05b-instruct','cnn_dailymail','reward_mean'),2,signed=True)} | {_fmt(smol('qwen25-05b-instruct','wikitext','perplexity'),1)} | {_fmt(smol('qwen25-05b-instruct','wikitext','reward_mean'),2,signed=True)} |",
         f"| 360M+ | **SmolLM2-360M (ours, SFT)** | LoRA, 5 ep, 10K ex | **{_fmt(ours_field('smollm2-360m','tinystories','sft_perplexity'),1)}** | {_fmt(ours_field('smollm2-360m','tinystories','sft_reward_mean'),2,signed=True)} | **{_fmt(ours_field('smollm2-360m','cnn_dailymail','sft_perplexity'),1)}** | {_fmt(ours_field('smollm2-360m','cnn_dailymail','sft_reward_mean'),2,signed=True)} | **{_fmt(ours_field('smollm2-360m','wikitext','sft_perplexity'),1)}** | {_fmt(ours_field('smollm2-360m','wikitext','sft_reward_mean'),2,signed=True)} |",
         f"| 360M+ | **SmolLM2-360M (ours, PPO)** | + 250-step PPO RLHF | **{_fmt(ours_field('smollm2-360m','tinystories','ppo_perplexity'),1)}** | **{_fmt(ours_field('smollm2-360m','tinystories','ppo_reward_mean'),2,signed=True)}** | **{_fmt(ours_field('smollm2-360m','cnn_dailymail','ppo_perplexity'),1)}** | {_fmt(ours_field('smollm2-360m','cnn_dailymail','ppo_reward_mean'),2,signed=True)} | **{_fmt(ours_field('smollm2-360m','wikitext','ppo_perplexity'),1)}** | **{_fmt(ours_field('smollm2-360m','wikitext','ppo_reward_mean'),2,signed=True)}** |",
@@ -585,6 +583,13 @@ on the same prompt, Φ(Δ / √(σ²_PPO + σ²_SFT)).
   Models whose SFT baseline is already near-perfect see diminishing returns at this
   training budget — PPO gain is governed by the gap between a fluent SFT prior and
   the reward ceiling, not by raw parameter count.
+- **Statistical significance.** A two-sided z-test over the n = 200 held-out prompts
+  per configuration (95% CI on Δ) confirms three significant gains: Pythia-410M /
+  TinyStories (CI [+0.61, +2.10], p < 0.001), SmolLM2-360M / TinyStories
+  (CI [+0.32, +1.13], p < 0.001), and SmolLM2-360M / Wikitext-103
+  (CI [+0.04, +0.50], p < 0.05). The only significant regression, Pythia-410M /
+  Wikitext-103 (Δ = −1.043, p < 0.001), coincides with an SFT prior above the
+  fluency threshold (PPL = 25.4).
 - **No repetition collapse.** PPO consistently preserves or *improves* Distinct-2
   diversity over the SFT baseline — e.g. SmolLM2-360M / Wikitext goes from
   Distinct-1 = 0.23 → 0.31 and Distinct-2 = 0.65 → 0.73.

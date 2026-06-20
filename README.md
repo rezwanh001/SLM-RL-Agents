@@ -176,6 +176,8 @@ SmolLM2 models dominate every domain thanks to their curated FineWeb-Edu pre-tra
 > **Notes:** Reward scores use per-configuration scales (each reward model is trained independently from the matching SFT checkpoint, so absolute magnitudes are not comparable across rows). Win rate = analytical probability Φ(Δ/√(σ²_PPO + σ²_SFT)) that a PPO response scores higher than a SFT response on the same prompt. All runs use the final PPO recipe: 250 steps, LR 5e-6, KL penalty 0.2, reward whitening + score clipping, float32 throughout, weight rollback on NaN/Inf.
 >
 > **Capacity-headroom hypothesis:** the three largest positive reward deltas all occur at the two highest-capacity models with fluent SFT priors (Pythia-410M/TinyStories Δ=+1.36, SmolLM2-360M/TinyStories Δ=+0.72, SmolLM2-360M/Wikitext Δ=+0.27). Pythia-70M, whose SFT perplexity exceeds 50 on every domain, shows near-zero movement everywhere. This confirms that PPO gain at the SLM scale is governed by the gap between a fluent SFT prior and the reward ceiling, not by raw parameter count.
+>
+> **Statistical significance:** a two-sided *z*-test over the *n* = 200 held-out prompts per configuration (95% CI on Δ) confirms three significant gains — Pythia-410M/TinyStories (CI [+0.61, +2.10], *p* < 0.001), SmolLM2-360M/TinyStories (CI [+0.32, +1.13], *p* < 0.001), and SmolLM2-360M/Wikitext-103 (CI [+0.04, +0.50], *p* < 0.05). The only significant regression, Pythia-410M/Wikitext-103 (Δ = −1.043, *p* < 0.001), coincides with an SFT prior above the fluency threshold (PPL = 25.4), in agreement with the capacity-headroom hypothesis.
 
 ### Comparison vs. Published SOTA Instruct-Tuned SLMs
 
@@ -183,10 +185,10 @@ Each instruct baseline and the matching SFT checkpoint is scored with the **same
 
 | Class      | Model                                                                                        | Training regime           | TS PPL   | TS R       | CNN PPL  | CNN R      | Wiki PPL | Wiki R    |
 | ---------- | -------------------------------------------------------------------------------------------- | ------------------------- | -------- | ---------- | -------- | ---------- | -------- | --------- |
-| **135M**   | SmolLM2-135M-Instruct ([Allal et al., 2024](https://arxiv.org/abs/2502.02737))               | instr.-tune, 1.7T tok     | 8.5      | **−0.52**  | 19.8     | **+0.35**  | 34.3     | −0.79     |
+| **135M**   | SmolLM2-135M-Instruct ([Allal et al., 2024](https://arxiv.org/abs/2502.02737))               | instr.-tune, 2T tok       | 8.5      | **−0.52**  | 19.8     | **+0.35**  | 34.3     | −0.79     |
 | **135M**   | **SmolLM2-135M (ours, SFT)**                                                                 | LoRA, 5 ep, 10K ex        | **7.0**  | −0.92      | **18.8** | +0.22      | **24.4** | −0.44     |
 | **135M**   | **SmolLM2-135M (ours, PPO)**                                                                 | + 250-step PPO RLHF       | 7.4      | −0.69      | 19.2     | +0.03      | 25.1     | −0.42     |
-| **360M+**  | SmolLM2-360M-Instruct ([Allal et al., 2024](https://arxiv.org/abs/2502.02737))               | instr.-tune, 1.7T tok     | 6.6      | +1.35      | 14.7     | **+3.08**  | 24.3     | +2.58     |
+| **360M+**  | SmolLM2-360M-Instruct ([Allal et al., 2024](https://arxiv.org/abs/2502.02737))               | instr.-tune, 4T tok       | 6.6      | +1.35      | 14.7     | **+3.08**  | 24.3     | +2.58     |
 | **360M+**  | Qwen2.5-0.5B-Instruct ([Qwen Team, 2024](https://arxiv.org/abs/2412.15115))                  | instr.-tune, 18T tok      | 7.2      | +1.32      | 19.9     | +2.58      | 25.8     | +1.83     |
 | **360M+**  | **SmolLM2-360M (ours, SFT)**                                                                 | LoRA, 5 ep, 10K ex        | **5.3**  | +1.69      | **12.7** | +2.36      | **16.7** | +2.71     |
 | **360M+**  | **SmolLM2-360M (ours, PPO)**                                                                 | + 250-step PPO RLHF       | **5.3**  | **+2.41**  | **12.8** | +2.36      | **16.9** | **+2.98** |
@@ -194,7 +196,7 @@ Each instruct baseline and the matching SFT checkpoint is scored with the **same
 **Key findings:**
 
 - Domain-specific LoRA SFT **beats every instruction-tuned baseline on perplexity** across every dataset and at every scale, with the largest margin on Wikitext (16.9 vs. 24.3, a 30% reduction) at the 360M class.
-- At the 360M class, the PPO checkpoint **achieves the best reward on TinyStories** (+2.41 vs. +1.35 for SmolLM2-360M-Instruct, +1.32 for Qwen2.5-0.5B-Instruct) and **on Wikitext-103** (+2.98 vs. +2.58 and +1.83) — a +0.40 absolute reward gain over the next best published baseline on Wikitext, and +1.06 over Qwen2.5-0.5B-Instruct on Wikitext.
+- At the 360M class, the PPO checkpoint **achieves the best reward on TinyStories** (+2.41 vs. +1.35 for SmolLM2-360M-Instruct, +1.32 for Qwen2.5-0.5B-Instruct) and **on Wikitext-103** (+2.98 vs. +2.58 and +1.83) — a +0.40 absolute reward gain over the next best published baseline on Wikitext, and +1.15 over Qwen2.5-0.5B-Instruct on Wikitext.
 - At the 135M class, PPO lifts reward from −0.92 to −0.69 on TinyStories, closing most of the gap to SmolLM2-135M-Instruct's −0.52.
 - PPO actually **increases corpus-level Distinct-1 diversity** over the SFT baseline (e.g. SmolLM2-360M/TinyStories: 0.135 → 0.156; SmolLM2-360M/Wikitext: 0.227 → 0.310; SmolLM2-135M/Wikitext: 0.230 → 0.269), indicating that the stabilization techniques avoid the repetition-collapse failure mode often reported in small-scale RLHF. All Distinct-1/2 values reported in this README are computed corpus-level (matching `scripts/evaluate.py:compute_distinct_n`) and are reproducible from `results/all_results.json`; the same definition is used in Tables IV and V of the paper.
 - These results are achieved with **~2 GPU-hours per configuration** on a single RTX A6000, vs. multi-thousand-GPU-hour regimes for the instruct baselines.
@@ -263,7 +265,7 @@ All experiments were conducted on a single workstation with **2× NVIDIA RTX A60
 | Precision                                   | float32 (PPO), mixed (SFT/RM)      |
 | Peak VRAM usage                             | ~38 GB (Pythia-410M PPO)           |
 
-> **Cost comparison:** SmolLM2-360M-Instruct required 1.7T tokens of pre-training + multi-million-example instruction tuning. The SFT stage uses **10K examples for 5 epochs**, and PPO runs for **250 steps on 32-sample rollouts** — roughly **3–4 orders of magnitude** less training data than the released baselines.
+> **Cost comparison:** SmolLM2-360M-Instruct required 4T tokens of pre-training + multi-million-example instruction tuning. The SFT stage uses **10K examples for 5 epochs**, and PPO runs for **250 steps on 32-sample rollouts** — roughly **3–4 orders of magnitude** less training data than the released baselines.
 
 ---
 
