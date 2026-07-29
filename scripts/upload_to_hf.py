@@ -1,9 +1,7 @@
 #-*- coding: utf-8 -*-
 """
 @author: Md Rezwanul Haque
-"""
 
-"""
 Upload SLM-RL-Agents datasets and models to HuggingFace Hub.
 
 # ⚠️  DEPRECATED — DO NOT RUN ⚠️
@@ -155,11 +153,15 @@ print(ds)
 ## Citation
 
 ```bibtex
-@misc{{haque2026slmrlagents,
-  title        = {{Towards Robust Reinforcement Learning for Small-Scale Language Model Agents}},
-  author       = {{Haque, Md Rezwanul and Islam, Md. Milon and Karray, Fakhri}},
-  year         = {{2026}},
-  howpublished = {{\\url{{https://github.com/rezwanh001/slm-rl-agents}}}}
+@inproceedings{{haque2026slmrlagents,
+  title         = {{Towards Robust Reinforcement Learning for Small-Scale Language Model Agents}},
+  author        = {{Haque, Md Rezwanul and Islam, Md. Milon and Karray, Fakhri}},
+  booktitle     = {{Proceedings of the IEEE International Conference on Systems, Man, and Cybernetics (SMC)}},
+  year          = {{2026}},
+  eprint        = {{2607.25091}},
+  archivePrefix = {{arXiv}},
+  primaryClass  = {{cs.AI}},
+  doi           = {{10.48550/arXiv.2607.25091}}
 }}
 ```
 
@@ -270,11 +272,15 @@ print(tok.decode(out[0], skip_special_tokens=True))
 ## Citation
 
 ```bibtex
-@misc{{haque2026slmrlagents,
-  title        = {{Towards Robust Reinforcement Learning for Small-Scale Language Model Agents}},
-  author       = {{Haque, Md Rezwanul and Islam, Md. Milon and Karray, Fakhri}},
-  year         = {{2026}},
-  howpublished = {{\\url{{https://github.com/rezwanh001/slm-rl-agents}}}}
+@inproceedings{{haque2026slmrlagents,
+  title         = {{Towards Robust Reinforcement Learning for Small-Scale Language Model Agents}},
+  author        = {{Haque, Md Rezwanul and Islam, Md. Milon and Karray, Fakhri}},
+  booktitle     = {{Proceedings of the IEEE International Conference on Systems, Man, and Cybernetics (SMC)}},
+  year          = {{2026}},
+  eprint        = {{2607.25091}},
+  archivePrefix = {{arXiv}},
+  primaryClass  = {{cs.AI}},
+  doi           = {{10.48550/arXiv.2607.25091}}
 }}
 ```
 """
@@ -367,11 +373,15 @@ print(tok.decode(out[0], skip_special_tokens=True))
 ## Citation
 
 ```bibtex
-@misc{{haque2026slmrlagents,
-  title        = {{Towards Robust Reinforcement Learning for Small-Scale Language Model Agents}},
-  author       = {{Haque, Md Rezwanul and Islam, Md. Milon and Karray, Fakhri}},
-  year         = {{2026}},
-  howpublished = {{\\url{{https://github.com/rezwanh001/slm-rl-agents}}}}
+@inproceedings{{haque2026slmrlagents,
+  title         = {{Towards Robust Reinforcement Learning for Small-Scale Language Model Agents}},
+  author        = {{Haque, Md Rezwanul and Islam, Md. Milon and Karray, Fakhri}},
+  booktitle     = {{Proceedings of the IEEE International Conference on Systems, Man, and Cybernetics (SMC)}},
+  year          = {{2026}},
+  eprint        = {{2607.25091}},
+  archivePrefix = {{arXiv}},
+  primaryClass  = {{cs.AI}},
+  doi           = {{10.48550/arXiv.2607.25091}}
 }}
 ```
 """

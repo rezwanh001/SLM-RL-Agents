@@ -1,7 +1,7 @@
 # Towards Robust Reinforcement Learning for Small-Scale Language Model Agents
 
-[![arXiv](https://img.shields.io/badge/arXiv-XXXX.XXXXX-b31b1b.svg)](https://arxiv.org/abs/XXXX.XXXXX)
-[![HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-mr3haque-yellow)](https://huggingface.co/mr3haque)
+[![arXiv](https://img.shields.io/badge/arXiv-2607.25091-b31b1b.svg)](https://arxiv.org/abs/2607.25091)
+[![HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-mr3haque-yellow)](https://huggingface.co/mr3haque/SLM-RL-Agents)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/rezwanh001/slm-rl-agents/blob/main/LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.5%2B-EE4C2C.svg)](https://pytorch.org/)
@@ -10,7 +10,9 @@
 
 ## Abstract
 
-Reinforcement Learning from Human Feedback (RLHF) is widely used for large-scale language models, yet its application to **small language models (SLMs)** in the **70–500M parameter** range remains under-explored. It is commonly assumed that Proximal Policy Optimization (PPO) is inherently unstable at this scale. This work tests that assumption in the **single-turn specialization of the agent MDP**, the stability prerequisite of any multi-turn agentic extension, through a systematic empirical investigation. An end-to-end pipeline—supervised fine-tuning, Bradley–Terry reward modelling, and PPO—is applied uniformly to **five SLMs** from two architecture families (Pythia-70M/160M/410M and SmolLM2-135M/360M) across **three diverse corpora** (TinyStories, CNN/DailyMail, Wikitext-103), producing **15 fully trained configurations**. Three critical engineering instabilities specific to the small-scale regime are identified and resolved: silent LoRA parameter freezing, bfloat16 numerical overflows, and catastrophic policy collapse. The results reveal the **capacity-headroom hypothesis**: PPO effectiveness is determined by the joint availability of a fluent SFT prior and a discriminating reward signal rather than raw parameter count. The proposed pipeline achieves performance comparable to or better than released instruction-tuned baselines while requiring several orders of magnitude less training data. All model checkpoints, datasets, training scripts, and **forward-compatibility scaffolding for multi-turn agentic extensions** are publicly released.
+The alignment of Small Language Models (SLMs) in the 70--500M parameter range using reinforcement learning is often considered unstable, though the underlying failure mechanisms have not been systematically investigated. In the State-of-the-Art (SOTA) research, fifteen (model, corpus) configurations were trained using Proximal Policy Optimization (PPO). The experiments included Pythia-70M, 160M, 410M and SmolLM2-135M, 360M on the TinyStories, CNN/DailyMail, and Wikitext-103 corpora. Three reproducible failure modes were identified in small-scale language models: silent LoRA parameter freezing in standard PEFT/TRL pipelines, numerical overflow in importance ratios when using bfloat16, and catastrophic policy collapse due to reward-model error. These issues were addressed using a merge-and-reinitialize adapter technique, float32 precision during PPO updates, and a three-layer safety mechanism comprising reward whitening, importance-ratio guarding, and weight rollback. In this paper, a capacity-headroom hypothesis is proposed, which states that PPO performance at the SLM scale depends on both a fluent supervised model ($\text{PPL}<20$) and a discriminative reward signal, rather than on the number of model parameters. The proposed system converged stably in all experiments and improved preference win rate over the SFT baseline in configurations with a fluent prior and an informative reward signal. Furthermore, it outperformed instruction-tuned baselines while requiring significantly less training data. All checkpoints, preference datasets, and training scripts are publicly released.
+
+<!-- Reinforcement Learning from Human Feedback (RLHF) is widely used for large-scale language models, yet its application to **small language models (SLMs)** in the **70–500M parameter** range remains under-explored. It is commonly assumed that Proximal Policy Optimization (PPO) is inherently unstable at this scale. This work tests that assumption in the **single-turn specialization of the agent MDP**, the stability prerequisite of any multi-turn agentic extension, through a systematic empirical investigation. An end-to-end pipeline—supervised fine-tuning, Bradley–Terry reward modelling, and PPO—is applied uniformly to **five SLMs** from two architecture families (Pythia-70M/160M/410M and SmolLM2-135M/360M) across **three diverse corpora** (TinyStories, CNN/DailyMail, Wikitext-103), producing **15 fully trained configurations**. Three critical engineering instabilities specific to the small-scale regime are identified and resolved: silent LoRA parameter freezing, bfloat16 numerical overflows, and catastrophic policy collapse. The results reveal the **capacity-headroom hypothesis**: PPO effectiveness is determined by the joint availability of a fluent SFT prior and a discriminating reward signal rather than raw parameter count. The proposed pipeline achieves performance comparable to or better than released instruction-tuned baselines while requiring several orders of magnitude less training data. All model checkpoints, datasets, training scripts, and **forward-compatibility scaffolding for multi-turn agentic extensions** are publicly released. -->
 
 ---
 
@@ -617,7 +619,7 @@ SLM-RL-Agents/
 └── README.md                     # You are here
 ```
 
-> **Note on the paper draft.** The LaTeX source for the paper lives under `paper/` locally but is **intentionally not tracked** in this repository (see [.gitignore](https://github.com/rezwanh001/slm-rl-agents/blob/main/.gitignore)). The compiled PDF will be released on arXiv when the paper is posted.
+> **Note on the paper.** The paper is available on arXiv: [arXiv:2607.25091](https://arxiv.org/abs/2607.25091). The LaTeX source lives under `paper/` locally but is **intentionally not tracked** in this repository (see [.gitignore](https://github.com/rezwanh001/slm-rl-agents/blob/main/.gitignore)).
 
 ---
 
@@ -627,13 +629,17 @@ If you find this work useful, please cite:
 
 ```bibtex
 @inproceedings{haque2026slmrlagents,
-  title     = {Towards Robust Reinforcement Learning for Small-Scale
-               Language Model Agents},
-  author    = {Haque, Md Rezwanul and Islam, Md. Milon and Karray, Fakhri},
-  booktitle = {Proceedings of the IEEE International Conference on
-               Systems, Man, and Cybernetics (SMC)},
-  year      = {2026},
-  note      = {University of Waterloo \& KUET \& MBZUAI}
+  title         = {Towards Robust Reinforcement Learning for Small-Scale
+                   Language Model Agents},
+  author        = {Haque, Md Rezwanul and Islam, Md. Milon and Karray, Fakhri},
+  booktitle     = {Proceedings of the IEEE International Conference on
+                   Systems, Man, and Cybernetics (SMC)},
+  year          = {2026},
+  eprint        = {2607.25091},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.AI},
+  doi           = {10.48550/arXiv.2607.25091},
+  note          = {University of Waterloo \& KUET \& MBZUAI}
 }
 ```
 
